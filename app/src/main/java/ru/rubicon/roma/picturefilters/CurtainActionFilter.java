@@ -1,11 +1,10 @@
 package ru.rubicon.roma.picturefilters;
 
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
-import android.util.Log;
 
 /**
  * Created by roma on 26.02.2017.
@@ -14,63 +13,35 @@ import android.util.Log;
 public class CurtainActionFilter extends ActionFilter {
 
     private static final String TAG = "tag";
+    private static final int CURTAIN_NUMBER = 6;
     private Paint srcInPaint;
-    private ActionFilter nextFilter;
-    private Paint paint;
+    private Paint maskPaint;
 
-    public CurtainActionFilter() {
-        paint = new Paint();
+    private float step;
+
+    public CurtainActionFilter(int framesCount) {
+        super(framesCount);
+        maskPaint = new Paint();
+        maskPaint.setColor(Color.TRANSPARENT);
         srcInPaint = new Paint();
-        srcInPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_OUT));
+        srcInPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
+        step = 1f / (CURTAIN_NUMBER * framesCount);
     }
 
     @Override public void paintFrame(Canvas canvas, int curFrame) {
-        Bitmap bufferBitmap = Bitmap.createBitmap(canvas.getWidth(), canvas.getHeight(), Bitmap.Config.ARGB_8888);
-        Canvas buffer = new Canvas(bufferBitmap);
-        if (hasNextFilter()) {
-            getNextFilter().paintFrame(buffer, curFrame);
-        } else {
-            buffer.drawBitmap(getBitmap(), 0, 0, null);
-        }
-        Bitmap mask = createCurtainMask(curFrame, buffer, paint);
-        Bitmap maskBufferBitmap = Bitmap.createBitmap(canvas.getWidth(), canvas.getHeight(), Bitmap.Config.ARGB_8888);
-        Canvas maskBufferCanvas = new Canvas(maskBufferBitmap);
-        maskBufferCanvas.drawBitmap(mask, 0, 0, null);
-        maskBufferCanvas.drawBitmap(bufferBitmap, 0, 0, srcInPaint);
-
-        canvas.drawBitmap(maskBufferBitmap, 0,0, null);
-        maskBufferBitmap.recycle();
-        bufferBitmap.recycle();
+//        canvas.saveLayer(0, 0, canvas.getWidth(), canvas.getHeight(), null, Canvas.ALL_SAVE_FLAG);
+        drawCurtain(canvas, curFrame);
+//        canvas.restore();
     }
 
-    private Bitmap createCurtainMask(int curFrame, Canvas canvas, Paint paint){
-        Bitmap mask = Bitmap.createBitmap(canvas.getWidth(), canvas.getHeight(), Bitmap.Config.ALPHA_8);
-        Canvas maskCanvas = new Canvas(mask);
-        float left = 0f;
-        float top = 0f;
-        float right = 0f;
-        float bottom = 0f;
+    private void drawCurtain(Canvas canvas, int currentFrame){
+        float left, top, right, bottom ;
         for (int i = 0; i < 6; i++){
-            left = i * canvas.getWidth() / 6;
-            right = left + (1f * curFrame / getFramesCount()) * canvas.getWidth() / 6f + 1f;
+            left = i * canvas.getWidth() / CURTAIN_NUMBER;
+            right = left + (getFramesCount() - currentFrame) * canvas.getWidth() * step;
             top = 0;
             bottom = canvas.getHeight();
-            maskCanvas.drawRect(left, top, right, bottom, paint);
+            canvas.drawRect(left, top, right, bottom, srcInPaint);
         }
-        Log.d(TAG, "curFrame " + curFrame);
-        Log.d(TAG, "" + left + ", " + top + ", " + right);
-        return mask;
-    }
-
-    @Override public void setNextFilter(ActionFilter nextFilter) {
-        this.nextFilter = nextFilter;
-    }
-
-    @Override public ActionFilter getNextFilter() {
-        return nextFilter;
-    }
-
-    public boolean hasNextFilter() {
-        return nextFilter != null;
     }
 }

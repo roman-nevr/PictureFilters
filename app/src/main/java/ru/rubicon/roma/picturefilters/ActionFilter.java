@@ -9,19 +9,26 @@ import android.graphics.Canvas;
 
 // базовый класс для фильтров показа и скрытия.
 public abstract class ActionFilter {
-    // битмап который отрисовается фильтром.
-    protected Bitmap bitmap;
-    // количество кадров, которое создает данный фильтр, от
-    // начала до конца.
+
     private int framesCount;
-    // отрисовывает следующий кадр.
-    public abstract void paintFrame(Canvas canvas, int curFrame);
-    // устанавливает следующий фильтр для
-    //  составного фильтра.
-    public abstract void setNextFilter(ActionFilter filter);
-    // получает следующий фильтр для составного
-    // фильтра.
-    public abstract ActionFilter getNextFilter();
+
+    private Bitmap bitmap;
+
+    public ActionFilter(int framesCount) {
+        this.framesCount = framesCount;
+    }
+
+    private ActionFilter nextFilter;
+
+    public abstract void paintFrame(Canvas canvas, int currentFrame);
+
+    public final void setNextFilter(ActionFilter filter){
+        this.nextFilter = filter;
+    }
+
+    public final ActionFilter getNextFilter(){
+        return nextFilter;
+    }
 
     protected final Bitmap getBitmap(){
         return bitmap;
@@ -35,7 +42,7 @@ public abstract class ActionFilter {
         return framesCount;
     }
 
-    public void setFramesCount(int framesCount) {
+    public final void setFramesCount(int framesCount) {
         this.framesCount = framesCount;
     }
 }

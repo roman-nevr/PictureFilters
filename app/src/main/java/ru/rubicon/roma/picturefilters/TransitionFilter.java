@@ -10,7 +10,7 @@ import android.graphics.Canvas;
 // базовый класс для Transition Filters.
 public abstract class TransitionFilter {
 
-    public TransitionFilter(int framesCount, ActionFilter hideFilter, ActionFilter showFilter) {
+    public TransitionFilter(int framesCount, ActionFilter showFilter, ActionFilter hideFilter) {
         this.framesCount = framesCount;
         this.hideFilter = hideFilter;
         this.showFilter = showFilter;
@@ -29,20 +29,20 @@ public abstract class TransitionFilter {
     }
 
     // canvas, на котором производится всё рисование
-    private Canvas canvas;
+    //private Canvas canvas; каждый такт меняется
     // количество кадров, которое создает данный фильтр, от
     // начала до конца.
     protected int framesCount;
     // текущий номер кадра.
-    protected int curFrame;
+    //protected int curFrame;
     // фильтр скрытия
     private ActionFilter hideFilter;
     // фильтр показа
     private ActionFilter showFilter;
     protected Bitmap currentBitmap, nextBitmap;
 
-    // отрисовывает следующий кадр.
-    public abstract void paintNext(Canvas canvas);
+    // отрисовывает нужный кадр.
+    public abstract void paintFrame(Canvas canvas, int currentFrame);
 
     public ActionFilter getHideFilter() {
         return hideFilter;
@@ -56,37 +56,38 @@ public abstract class TransitionFilter {
         this.framesCount = framesCount;
     }
 
-    public int getFramesCount() {
+    public final int getFramesCount() {
         return framesCount;
     }
 
-    public int getCurFrame() {
-        return curFrame;
-    }
-
-    //если отстаем
-    public void setCurFrame(int curFrame) {
-        this.curFrame = curFrame;
-    }
-
-
-    public void incCurFrame() {
-        curFrame++;
-    }
-
-    public Bitmap getNextBitmap() {
+    public final Bitmap getNextBitmap() {
         return nextBitmap;
     }
 
-    public void setNextBitmap(Bitmap nextBitmap) {
+    public final void setNextBitmap(Bitmap nextBitmap) {
         this.nextBitmap = nextBitmap;
+        ActionFilter actionFilter = showFilter;
+        actionFilter.setBitmap(nextBitmap);
+        if(actionFilter.getNextFilter() != null){
+            actionFilter = actionFilter.getNextFilter();
+            actionFilter.setBitmap(nextBitmap);
+        }
     }
 
-    public Bitmap getCurrentBitmap() {
+    public final Bitmap getCurrentBitmap() {
         return currentBitmap;
     }
 
-    public void setCurrentBitmap(Bitmap currentBitmap) {
+    public final void setCurrentBitmap(Bitmap currentBitmap) {
         this.currentBitmap = currentBitmap;
+        if (hideFilter == null){
+            return;
+        }
+        ActionFilter actionFilter = hideFilter;
+        actionFilter.setBitmap(currentBitmap);
+        if(actionFilter.getNextFilter() != null){
+            actionFilter = actionFilter.getNextFilter();
+            actionFilter.setBitmap(nextBitmap);
+        }
     }
 }
