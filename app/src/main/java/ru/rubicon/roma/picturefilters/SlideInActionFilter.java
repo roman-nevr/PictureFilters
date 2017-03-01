@@ -25,12 +25,25 @@ public class SlideInActionFilter extends ActionFilter {
     }
 
     @Override public void paintFrame(Canvas canvas, int curFrame) {
-//        canvas.translate(0, canvas.getHeight() * (imageOffset * (getFramesCount() - curFrame) / getFramesCount()));
-        //canvas.drawRect(0,0,canvas.getHeight(),canvas.getWidth(),fillPaint);
-        canvas.drawBitmap(getBitmap(), 0, canvas.getHeight() * (imageOffset * (getFramesCount() - curFrame) / getFramesCount()), fillPaint);
+        switch (getVariant() % 4){
+            case 0:{
+                canvas.drawBitmap(getBitmap(), 0, canvas.getHeight() * (imageOffset * (float) (getFramesCount() - curFrame) / getFramesCount()), fillPaint);
+                break;
+            }
+            case 1:{
+                canvas.drawBitmap(getBitmap(), 0, - imageOffset * canvas.getHeight() * ((getFramesCount() - curFrame) / (float) getFramesCount()), fillPaint);
+                break;
+            }
+            case 2:{
+                canvas.drawBitmap(getBitmap(), canvas.getWidth() * (imageOffset * (float) (getFramesCount() - curFrame) / (float) getFramesCount()), 0, fillPaint);
+                break;
+            }
+            case 3:{
+                canvas.drawBitmap(getBitmap(), imageOffset * canvas.getWidth() * ((- (getFramesCount() - curFrame) / (float)getFramesCount())), 0, fillPaint);
+                break;
+            }
+        }
+
     }
 
-    @Override public void setBitmap(Bitmap bitmap) {
-        super.setBitmap(bitmap);
-    }
 }

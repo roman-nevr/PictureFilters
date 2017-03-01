@@ -12,9 +12,7 @@ import android.graphics.PorterDuffXfermode;
 
 public class CurtainActionFilter extends ActionFilter {
 
-    private static final String TAG = "tag";
     private static final int CURTAIN_NUMBER = 6;
-    private Paint srcInPaint;
     private Paint maskPaint;
 
     private float step;
@@ -22,26 +20,59 @@ public class CurtainActionFilter extends ActionFilter {
     public CurtainActionFilter(int framesCount) {
         super(framesCount);
         maskPaint = new Paint();
-        maskPaint.setColor(Color.TRANSPARENT);
-        srcInPaint = new Paint();
-        srcInPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
+        maskPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
         step = 1f / (CURTAIN_NUMBER * framesCount);
     }
 
     @Override public void paintFrame(Canvas canvas, int curFrame) {
-//        canvas.saveLayer(0, 0, canvas.getWidth(), canvas.getHeight(), null, Canvas.ALL_SAVE_FLAG);
         drawCurtain(canvas, curFrame);
-//        canvas.restore();
     }
 
     private void drawCurtain(Canvas canvas, int currentFrame){
         float left, top, right, bottom ;
-        for (int i = 0; i < 6; i++){
-            left = i * canvas.getWidth() / CURTAIN_NUMBER;
-            right = left + (getFramesCount() - currentFrame) * canvas.getWidth() * step;
-            top = 0;
-            bottom = canvas.getHeight();
-            canvas.drawRect(left, top, right, bottom, srcInPaint);
+        switch (getVariant() % 4){
+            case 0:{
+                for (int i = 0; i < CURTAIN_NUMBER; i++){
+                    left = i * canvas.getWidth() / CURTAIN_NUMBER;
+                    right = left + (getFramesCount() - currentFrame) * canvas.getWidth() * step;
+                    top = 0;
+                    bottom = canvas.getHeight();
+                    canvas.drawRect(left, top, right, bottom, maskPaint);
+                }
+                break;
+            }
+            case 1:{
+                for (int i = 0; i < CURTAIN_NUMBER; i++){
+                    right = (i + 1) * canvas.getWidth() / CURTAIN_NUMBER;
+                    left = right - (getFramesCount() - currentFrame) * canvas.getWidth() * step;
+                    top = 0;
+                    bottom = canvas.getHeight();
+                    canvas.drawRect(left, top, right, bottom, maskPaint);
+                }
+                break;
+            }
+            case 2:{
+                for (int i = 0; i < CURTAIN_NUMBER; i++){
+                    right = canvas.getWidth();
+                    left = 0;
+                    top = i * canvas.getHeight() / CURTAIN_NUMBER;
+                    bottom = top + (getFramesCount() - currentFrame) * canvas.getHeight() * step;
+                    canvas.drawRect(left, top, right, bottom, maskPaint);
+                }
+                break;
+            }
+            case 3:{
+                for (int i = 0; i < CURTAIN_NUMBER; i++){
+                    right = canvas.getWidth();
+                    left = 0;
+                    bottom = (i + 1) * canvas.getHeight() / CURTAIN_NUMBER;
+                    top = bottom - (getFramesCount() - currentFrame) * canvas.getHeight() * step;
+                    canvas.drawRect(left, top, right, bottom, maskPaint);
+                }
+                break;
+            }
+            default:throw new IllegalArgumentException();
+
         }
     }
 }

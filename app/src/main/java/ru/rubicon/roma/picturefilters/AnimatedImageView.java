@@ -1,18 +1,13 @@
 package ru.rubicon.roma.picturefilters;
 
+import android.animation.Animator;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Matrix;
-import android.graphics.Paint;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffXfermode;
 import android.util.AttributeSet;
 import android.widget.ImageView;
-
-import java.util.Date;
 
 /**
  * Created by roma on 25.02.2017.
@@ -20,17 +15,10 @@ import java.util.Date;
 
 public class AnimatedImageView extends ImageView {
 
-    public static final String TAG = "tag";
-    Bitmap day, night, sky;
-    private Matrix matrix;
-    private Paint maskPaint;
     private int currentFrame;
     private boolean animated;
-    private Bitmap currentBitmap, nextBitmap, tmp;
-    private Canvas bufferCanvas;
-    private Paint srcInPaint;
+    private Bitmap currentBitmap, showBitmap, hideBitmap;
     private TransitionFilter transitionFilter;
-    private boolean scaled;
 
     public AnimatedImageView(Context context) {
         super(context);
@@ -48,25 +36,36 @@ public class AnimatedImageView extends ImageView {
     }
 
     private void init() {
-
-        matrix = new Matrix();
-        maskPaint = new Paint();
-        srcInPaint = new Paint();
-        srcInPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
     }
 
-    @SuppressLint({"DrawAllocation"})
     @Override
     protected void onDraw(Canvas canvas) {
-        if (animated){
-            transitionFilter.paintFrame(canvas, currentFrame);
-        }else {
-            if (currentBitmap != null){
-                canvas.drawBitmap(currentBitmap, 0, 0, null);
-            }else {
-                super.onDraw(canvas);
+        if(animated){
+            if(!isBitmapFitView(showBitmap)){
+                showBitmap = fitToSize(showBitmap, getWidth(), getHeight());
+                transitionFilter.setNextBitmap(showBitmap);
             }
+            if(!isBitmapFitView(hideBitmap)){
+                hideBitmap = fitToSize(hideBitmap, getWidth(), getHeight());
+                transitionFilter.setCurrentBitmap(hideBitmap);
+            }
+            transitionFilter.paintFrame(canvas, currentFrame);
+            //System.out.println(currentFrame);
+        }else {
+            showStaticBitmap(canvas);
         }
+    }
+
+    @SuppressLint({"DrawAllocation", "WrongCall"})
+    private void showStaticBitmap(Canvas canvas) {
+        if(currentBitmap ==null){
+            super.onDraw(canvas);
+            return;
+        }
+        if(!isBitmapFitView(currentBitmap)){
+            currentBitmap = fitToSize(currentBitmap, getWidth(), getHeight());
+        }
+        canvas.drawBitmap(currentBitmap, 0, 0, null);
     }
 
     @Override
@@ -75,16 +74,6 @@ public class AnimatedImageView extends ImageView {
         int measuredWidth = measureWidth(widthMeasureSpec);
         int measuredHeight = measureWidth(widthMeasureSpec);
         setMeasuredDimension(measuredWidth, measuredHeight);
-
-        currentBitmap = checkSize(currentBitmap, measuredWidth, measuredHeight);
-        nextBitmap = checkSize(nextBitmap, measuredWidth, measuredHeight);
-    }
-
-    private Bitmap checkSize(Bitmap bitmap, int width, int height){
-        if(bitmap != null && (bitmap.getWidth() > width || bitmap.getHeight() > height)){
-            return scale(bitmap, width, height);
-        }
-        return bitmap;
     }
 
     private int measureWidth(int widthMeasureSpec) {
@@ -93,54 +82,75 @@ public class AnimatedImageView extends ImageView {
         return specSize;
     }
 
-
-    private Bitmap scale(Bitmap bitmap, int width, int height) {
-        Bitmap newBitmap;
-        if (bitmap.getWidth() >= bitmap.getHeight()) {
-            newBitmap = Bitmap.createBitmap(bitmap, (bitmap.getWidth() - bitmap.getHeight()) / 2, 0,
-                    bitmap.getHeight(), bitmap.getHeight());
-            bitmap = newBitmap;
-            newBitmap = Bitmap.createScaledBitmap(bitmap, width, width, false);
-        } else {
-            newBitmap = Bitmap.createBitmap(bitmap, 0, (bitmap.getHeight() - bitmap.getWidth()) / 2,
-                    bitmap.getWidth(), bitmap.getWidth());
-            bitmap = newBitmap;
-            newBitmap = Bitmap.createScaledBitmap(bitmap, width, width, false);
-        }
-        return newBitmap;
-    }
-
     public void nextImage(Bitmap bitmap, final TransitionFilter transitionFilter) {
-        if(getWidth() > 0){
-            nextBitmap = checkSize(bitmap, getWidth(), getHeight());
-        }else {
-            nextBitmap = bitmap;
-        }
+        this.showBitmap = bitmap;
+        this.hideBitmap = currentBitmap;
         this.transitionFilter = transitionFilter;
-        transitionFilter.setCurrentBitmap(currentBitmap);
-        transitionFilter.setNextBitmap(nextBitmap);
-        currentBitmap = nextBitmap;
-        ValueAnimator animator = ValueAnimator.ofInt(0, transitionFilter.getFramesCount());
-        animator.setDuration((int)(transitionFilter.getFramesCount() * 16.6667));
+
+        this.transitionFilter.setNextBitmap(showBitmap);
+        this.transitionFilter.setCurrentBitmap(hideBitmap);
+        currentBitmap = showBitmap;
+
         animated = true;
+        ValueAnimator animator = ValueAnimator.ofInt(0, transitionFilter.getFramesCount());
+        animator.setDuration((int) (transitionFilter.getFramesCount() * 16.6667));
         animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-            @Override public void onAnimationUpdate(ValueAnimator animation) {
-                currentFrame = (int) animation.getAnimatedValue();
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                currentFrame = (int)animation.getAnimatedValue();
                 invalidate();
+            }
+        });
+        animator.addListener(new Animator.AnimatorListener() {
+            @Override public void onAnimationStart(Animator animation) {
+
+            }
+
+            @Override public void onAnimationEnd(Animator animation) {
+                animated = false;
+                invalidate();
+            }
+
+            @Override public void onAnimationCancel(Animator animation) {
+                animated = false;
+                invalidate();
+            }
+
+            @Override public void onAnimationRepeat(Animator animation) {
+
             }
         });
         animator.start();
     }
 
-    public long getTime() {
-        return new Date().getTime();
-    }
-
     public void setCurrentBitmap(Bitmap currentBitmap) {
-        if(getWidth() > 0){
-            currentBitmap = scale(currentBitmap, getWidth(), getHeight());
-        }
         this.currentBitmap = currentBitmap;
         invalidate();
+    }
+
+    private boolean isBitmapFitView(Bitmap bitmap){
+        if(bitmap == null){
+            return true;
+        }
+        if(bitmap.getWidth() != getWidth() || bitmap.getHeight() != getHeight()){
+            return false;
+        }else {
+            return true;
+        }
+    }
+
+    private Bitmap fitToSize(Bitmap bitmap, int width, int height) {
+        Bitmap croppedBitmap;
+        if (bitmap.getWidth() >= bitmap.getHeight()) {
+            croppedBitmap = Bitmap.createBitmap(bitmap, (bitmap.getWidth() - bitmap.getHeight()) / 2, 0,
+                    bitmap.getHeight(), bitmap.getHeight());
+
+        } else {
+            croppedBitmap = Bitmap.createBitmap(bitmap, 0, (bitmap.getHeight() - bitmap.getWidth()) / 2,
+                    bitmap.getWidth(), bitmap.getWidth());
+        }
+        Bitmap scaledBitmap = Bitmap.createScaledBitmap(croppedBitmap, width, height, false);
+        croppedBitmap.recycle();
+        return scaledBitmap;
     }
 }

@@ -11,7 +11,7 @@ import android.graphics.Canvas;
 public abstract class TransitionFilter {
 
     public TransitionFilter(int framesCount, ActionFilter showFilter, ActionFilter hideFilter) {
-        this.framesCount = framesCount;
+        this.framesCount = framesCount + 1;
         this.hideFilter = hideFilter;
         this.showFilter = showFilter;
         if (hideFilter != null) {
@@ -53,7 +53,7 @@ public abstract class TransitionFilter {
     }
 
     public void setFramesCount(int framesCount) {
-        this.framesCount = framesCount;
+        this.framesCount = framesCount + 1;
     }
 
     public final int getFramesCount() {
@@ -87,7 +87,20 @@ public abstract class TransitionFilter {
         actionFilter.setBitmap(currentBitmap);
         if(actionFilter.getNextFilter() != null){
             actionFilter = actionFilter.getNextFilter();
-            actionFilter.setBitmap(nextBitmap);
+            actionFilter.setBitmap(currentBitmap);
+        }
+    }
+
+    public final void setVariant(int variant){
+        ActionFilter actionFilter = getHideFilter();
+        while (actionFilter != null){
+            actionFilter.setVariant(variant);
+            actionFilter = actionFilter.getNextFilter();
+        }
+        actionFilter = getShowFilter();
+        while (actionFilter != null){
+            actionFilter.setVariant(variant);
+            actionFilter = actionFilter.getNextFilter();
         }
     }
 }

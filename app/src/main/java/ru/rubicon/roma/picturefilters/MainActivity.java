@@ -6,6 +6,8 @@ import android.support.annotation.DrawableRes;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 
 import java.util.Arrays;
 import java.util.List;
@@ -15,38 +17,77 @@ public class MainActivity extends AppCompatActivity {
     private AnimatedImageView imageView;
     private Bitmap sky, night, day;
     List<Bitmap> bitmaps;
-    int currentBitmapIndex;
-    TransitionFilter transitionFilter;
+    int currentBitmapIndex, currentVariant;
+    TransitionFilter transitionFilter, curtainFilter, pullInOutFilter;
+    private Button nextFilterButton;
+    private TextView textView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.filter_layout);
-        imageView = (AnimatedImageView) findViewById(R.id.image);
+        initView();
+        loadImages();
+        setFirstBitmap();
+        prepareFilters();
+    }
+
+    private void setFirstBitmap() {
+        imageView.setCurrentBitmap(bitmaps.get(currentBitmapIndex));
+    }
+
+    private void prepareFilters() {
+        int framesCount = 120;
+        curtainFilter = CurtainFilter.getInstance(framesCount);
+        pullInOutFilter = PullInOutFilter.getInstance(framesCount);
+        transitionFilter = pullInOutFilter;
+    }
+
+
+    private void loadImages() {
         sky = decodeBitmap(R.drawable.sky_bgr);
         night = decodeBitmap(R.drawable.night);
         day = decodeBitmap(R.drawable.material);
+        bitmaps = Arrays.asList(sky, night, day);
+
+    }
+
+
+    private void initView() {
+        setContentView(R.layout.activity_main);
+        imageView = (AnimatedImageView) findViewById(R.id.image);
+
         imageView.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
-                imageView.nextImage(bitmaps.get(currentBitmapIndex), transitionFilter);
                 currentBitmapIndex++;
-                if (currentBitmapIndex == bitmaps.size()){
+                currentVariant++;
+                if (currentBitmapIndex == bitmaps.size()) {
                     currentBitmapIndex = 0;
+                    System.out.println("currentBitmapIndex " + currentBitmapIndex);
+                }
+                if (currentVariant == 8){
+                    currentVariant = 0;
+                    System.out.println("currentVariant " + currentVariant);
+                }
+                transitionFilter.setVariant(currentVariant);
+                imageView.nextImage(bitmaps.get(currentBitmapIndex), transitionFilter);
+            }
+        });
+
+        textView = (TextView) findViewById(R.id.textView);
+
+        nextFilterButton = (Button) findViewById(R.id.change_button);
+        nextFilterButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(transitionFilter == curtainFilter){
+                    transitionFilter = pullInOutFilter;
+                    textView.setText("PullInOutFilter");
+                }else {
+                    transitionFilter = curtainFilter;
+                    textView.setText("CurtainFilter");
                 }
             }
         });
-        imageView.setCurrentBitmap(night);
-        bitmaps = Arrays.asList(sky, night, day);
-        int framesCount = 120;
-        ActionFilter showFilter = null;
-        ActionFilter curtain = new CurtainActionFilter(framesCount);
-        ActionFilter slide = new SlideInActionFilter(framesCount, 0.3f);
-        showFilter = slide;
-        //slide.setNextFilter(curtain);
-        //showFilter.setNextFilter(curtain);
-        showFilter = curtain;
-        showFilter.setNextFilter(slide);
-        transitionFilter = new SlideInFilter(framesCount, showFilter, null);
     }
 
     private Bitmap decodeBitmap(@DrawableRes int resId) {
